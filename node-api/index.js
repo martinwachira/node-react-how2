@@ -40,7 +40,23 @@ async function getRepos(req, res, next) {
   }
 }
 
-app.get("/repos/:username", getRepos);
+// cache middleware
+function cache(req, res, next) {
+  const { username } = req.params;
+  client.get(username, (err, data) => {
+    if (err) throw err;
+
+    if (data !== null) {
+      console.log("Data was found in redis");
+      res.status(200).send(setResponse(username, data));
+    } else {
+      console.log("Data was not found in redis");
+      next();
+    }
+  });
+}
+
+app.get("/repos/:username", cache, getRepos);
 
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
